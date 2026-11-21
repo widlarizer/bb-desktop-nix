@@ -13,17 +13,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v31
       - name: Read the latest release
         id: update
-        run: echo "version=$(./update.sh | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+        run: |
+          ./update.sh
+          echo "version=$(jq -r .version release.json)" >> "$GITHUB_OUTPUT"
+          git diff --quiet release.json || echo "changed=true" >> "$GITHUB_OUTPUT"
+      - uses: cachix/install-nix-action@v31
+        if: steps.update.outputs.changed
       - name: Check that it builds
-        run: |
-          git diff --quiet release.json && exit 0
-          nix build --print-build-logs
+        if: steps.update.outputs.changed
+        run: nix build --print-build-logs
       - name: Commit
+        if: steps.update.outputs.changed
         run: |
-          git diff --quiet release.json && exit 0
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -am "bb desktop ${{ steps.update.outputs.version }}"
@@ -31,9 +34,9 @@ jobs:
       - name: Release
         env:
           GH_TOKEN: ${{ github.token }}
+          V: ${{ steps.update.outputs.version }}
         run: |
-          v=$(jq -r .version release.json)
-          gh release view "v$v" >/dev/null 2>&1 && exit 0
-          gh release create "v$v" --target "$(git rev-parse HEAD)" \
-            --title "bb desktop $v" \
-            --notes "Wraps [bb desktop $v](https://github.com/get-bb/bb/releases/tag/desktop-v$v). Run with \`nix run github:${{ github.repository }}/v$v\`, or \`nix run github:${{ github.repository }}\` for the latest."
+          gh release view "v$V" >/dev/null 2>&1 && exit 0
+          gh release create "v$V" --target "$(git rev-parse HEAD)" \
+            --title "bb desktop $V" \
+            --notes "Wraps [bb desktop $V](https://github.com/get-bb/bb/releases/tag/desktop-v$V). Run with \`nix run github:${{ github.repository }}/v$V\`, or \`nix run github:${{ github.repository }}\` for the latest."
