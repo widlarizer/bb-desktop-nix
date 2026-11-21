@@ -28,3 +28,12 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -am "bb desktop ${{ steps.update.outputs.version }}"
           git push
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v=$(jq -r .version release.json)
+          gh release view "v$v" >/dev/null 2>&1 && exit 0
+          gh release create "v$v" --target "$(git rev-parse HEAD)" \
+            --title "bb desktop $v" \
+            --notes "Wraps [bb desktop $v](https://github.com/get-bb/bb/releases/tag/desktop-v$v). Run with \`nix run github:${{ github.repository }}/v$v\`, or \`nix run github:${{ github.repository }}\` for the latest."
