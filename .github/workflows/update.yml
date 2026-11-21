@@ -1,0 +1,30 @@
+name: update
+
+on:
+  schedule:
+    - cron: "17 */3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - name: Read the latest release
+        id: update
+        run: echo "version=$(./update.sh | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+      - name: Check that it builds
+        run: |
+          git diff --quiet release.json && exit 0
+          nix build --print-build-logs
+      - name: Commit
+        run: |
+          git diff --quiet release.json && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "bb desktop ${{ steps.update.outputs.version }}"
+          git push
