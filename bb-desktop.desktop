@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=bb
+Comment=bb desktop app
+Exec=nix run github:widlarizer/bb-desktop-nix -- %U
+Icon=bb-desktop
+Terminal=false
+StartupWMClass=bb
+Categories=Development;
